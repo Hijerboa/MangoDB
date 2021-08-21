@@ -1,0 +1,51 @@
+version: "3.8"
+services:
+  producer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./app/:/app/
+      - ./data/:/data/
+    environment:
+      - RABBITMQ_USER=admin
+      - RABBITMQ_PASS=bigpassword
+    ports:
+      - 6969:6969
+    command: python3 producer/entrypoint.py
+
+  consumer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./app/:/app/
+      - ./data/:/data/
+    environment:
+      - RABBITMQ_USER=admin
+      - RABBITMQ_PASS=bigpassword
+    depends_on:
+      - rabbit
+      - redis
+    command: celery -A consumer.tasks worker -l INFO --uid 1
+
+  beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./app/:/app/
+      - ./data/:/data/
+    environment:
+      - RABBITMQ_USER=admin
+      - RABBITMQ_PASS=bigpassword
+    command: celery -A consumer.tasks beat -l INFO
+
+  redis:
+    image: redis:6.2
+
+  rabbit:
+    image: rabbitmq:3.8
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=bigpassword
